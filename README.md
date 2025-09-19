@@ -1,1 +1,1 @@
-# capstone25-easy-travel
+# capstone25-K-trip
