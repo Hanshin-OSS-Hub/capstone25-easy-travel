@@ -4,12 +4,18 @@ CREATE TABLE route_preferences (
     user_id INT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    trip_duration_days INT NOT NULL,
-    trip_duration_nights INT NOT NULL,
-    theme_type VARCHAR(50) NOT NULL, -- e.g., 'adventure', 'cultural', 'relaxation', 'food', 'nature'
+    theme_id INT NOT NULL,
     schedule_type ENUM('relaxed', 'packed') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (theme_id) REFERENCES trip_themes(theme_id)
+);
+
+CREATE TABLE trip_themes (
+    theme_id INT PRIMARY KEY AUTO_INCREMENT,
+    theme_name VARCHAR(50) NOT NULL UNIQUE,
+    theme_description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table to store AI-generated route recommendations
@@ -22,7 +28,7 @@ CREATE TABLE recommended_routes (
     difficulty_level ENUM('easy', 'moderate', 'challenging'),
     generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (preference_id) REFERENCES route_preferences(preference_id)
+    FOREIGN KEY (preference_id) REFERENCES route_preferences(preference_id) ON DELETE CASCADE
 );
 
 -- Table to store daily itinerary details for each recommended route
@@ -31,10 +37,10 @@ CREATE TABLE route_itinerary (
     route_id INT NOT NULL,
     day_number INT NOT NULL,
     day_date DATE NOT NULL,
-    day_title VARCHAR(200),
     day_description TEXT,
-    FOREIGN KEY (route_id) REFERENCES recommended_routes(route_id),
-    UNIQUE KEY unique_route_day (route_id, day_number)
+    FOREIGN KEY (route_id) REFERENCES recommended_routes(route_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_route_day (route_id, day_number),
+    INDEX idx_itinerary_route_day (route_id, day_number)
 );
 
 -- Table to store individual activities within each day
@@ -47,12 +53,20 @@ CREATE TABLE itinerary_activities (
     activity_description TEXT,
     location_name VARCHAR(200),
     location_address TEXT,
-    location_latitude DECIMAL(10, 8),
-    location_longitude DECIMAL(11, 8),
-    estimated_duration_minutes INT,
-    estimated_cost DECIMAL(10, 2),
-    activity_category VARCHAR(50), -- e.g., 'dining', 'sightseeing', 'activity', 'transportation'
-    FOREIGN KEY (itinerary_id) REFERENCES route_itinerary(itinerary_id)
+    coordinates POINT,
+    estimated_duration_minutes INT DEFAULT NULL,
+    estimated_cost DECIMAL(10, 2) DEFAULT NULL,
+    activity_category_id INT,
+    FOREIGN KEY (itinerary_id) REFERENCES route_itinerary(itinerary_id) ON DELETE CASCADE,
+    FOREIGN KEY (activity_category_id) REFERENCES activity_categories(category_id),
+    SPATIAL INDEX idx_activity_coordinates (coordinates)
+);
+
+CREATE TABLE activity_categories (
+    category_id INT PRIMARY KEY AUTO_INCREMENT,
+    category_name VARCHAR(50) NOT NULL UNIQUE,
+    category_icon VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table to track when users add recommended routes to their personal schedule
@@ -67,6 +81,7 @@ CREATE TABLE user_saved_routes (
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (route_id) REFERENCES recommended_routes(route_id),
     UNIQUE KEY unique_user_route (user_id, route_id)
+);
 
 -- Table to store user ratings and feedback after trip completion
 CREATE TABLE route_ratings (
@@ -74,10 +89,10 @@ CREATE TABLE route_ratings (
     saved_route_id INT NOT NULL,
     user_id INT NOT NULL,
     rating_type ENUM('thumbs_up', 'thumbs_down') NOT NULL,
-    feedback_text TEXT,
+    feedback_text VARCHAR(1000),
     rated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (saved_route_id) REFERENCES user_saved_routes(saved_route_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (saved_route_id) REFERENCES user_saved_routes(saved_route_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     UNIQUE KEY unique_rating (saved_route_id, user_id)
 );
 
