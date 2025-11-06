@@ -12,14 +12,14 @@ CREATE TABLE locations (
     INDEX idx_location_name (location_name),
     INDEX idx_location_city (city),
     FOREIGN KEY (location_category_id) REFERENCES location_categories(category_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 CREATE TABLE location_categories (
     category_id INT PRIMARY KEY AUTO_INCREMENT,
     category_name VARCHAR(50) NOT NULL UNIQUE,
     category_description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Main review table
 CREATE TABLE reviews (
@@ -41,7 +41,7 @@ CREATE TABLE reviews (
     INDEX idx_reviews_rating (rating),
     INDEX idx_reviews_active (is_deleted, created_at), 
     INDEX idx_reviews_likes (like_count DESC)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Table to store photos and videos associated with reviews
 CREATE TABLE review_media (
@@ -56,7 +56,7 @@ CREATE TABLE review_media (
     FOREIGN KEY (review_id) REFERENCES reviews(review_id) ON DELETE CASCADE,
     INDEX idx_media_review (review_id),
     INDEX idx_media_type (media_type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Table to store likes on reviews
 CREATE TABLE review_likes (
@@ -69,7 +69,7 @@ CREATE TABLE review_likes (
     UNIQUE KEY unique_user_review_like (review_id, user_id),
     INDEX idx_review_likes_review (review_id),
     INDEX idx_review_likes_user (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- View to get reviews with like counts
 CREATE VIEW reviews_with_stats AS
