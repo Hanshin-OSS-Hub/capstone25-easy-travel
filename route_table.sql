@@ -12,6 +12,19 @@ CREATE TABLE route_preferences (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
+-- Table to track when users add recommended routes to their personal schedule
+CREATE TABLE user_saved_routes (
+    saved_route_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    route_id INT NOT NULL,
+    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    trip_status ENUM('planned', 'ongoing', 'completed', 'cancelled') DEFAULT 'planned',
+    actual_start_date DATE,
+    actual_end_date DATE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (route_id) REFERENCES recommended_routes(route_id),
+    UNIQUE KEY unique_user_route (user_id, route_id)
+
 -- Table to store AI-generated route recommendations
 CREATE TABLE recommended_routes (
     route_id INT PRIMARY KEY AUTO_INCREMENT,
