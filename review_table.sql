@@ -2,16 +2,23 @@
 CREATE TABLE locations (
     location_id INT PRIMARY KEY AUTO_INCREMENT,
     location_name VARCHAR(200) NOT NULL,
-    location_address TEXT,
+    location_address VARCHAR(300),
     city VARCHAR(100),
     country VARCHAR(100),
-    latitude DECIMAL(10, 8),
-    longitude DECIMAL(11, 8),
-    location_category VARCHAR(50), -- e.g., 'landmark', 'restaurant', 'museum', 'hotel'
+    coordinates POINT NOT NULL,
+    location_category_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    SPATIAL INDEX idx_coordinates (coordinates),
     INDEX idx_location_name (location_name),
     INDEX idx_location_city (city),
-    INDEX idx_location_category (location_category)
+    FOREIGN KEY (location_category_id) REFERENCES location_categories(category_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE location_categories (
+    category_id INT PRIMARY KEY AUTO_INCREMENT,
+    category_name VARCHAR(50) NOT NULL UNIQUE,
+    category_description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Main review table
@@ -20,9 +27,9 @@ CREATE TABLE reviews (
     user_id INT NOT NULL,
     location_id INT NOT NULL,
     rating DECIMAL(2, 1) NOT NULL,
-    review_title VARCHAR(200),
     review_comment TEXT,
     visit_date DATE,
+    like_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_deleted BOOLEAN DEFAULT FALSE,
@@ -32,7 +39,8 @@ CREATE TABLE reviews (
     INDEX idx_reviews_user (user_id),
     INDEX idx_reviews_location (location_id),
     INDEX idx_reviews_rating (rating),
-    INDEX idx_reviews_created (created_at)
+    INDEX idx_reviews_active (is_deleted, created_at), 
+    INDEX idx_reviews_likes (like_count DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table to store photos and videos associated with reviews
@@ -40,14 +48,14 @@ CREATE TABLE review_media (
     media_id INT PRIMARY KEY AUTO_INCREMENT,
     review_id INT NOT NULL,
     media_type ENUM('photo', 'video') NOT NULL,
-    media_url VARCHAR(500) NOT NULL,
-    media_thumbnail_url VARCHAR(500), -- Thumbnail for videos
-    file_size_kb INT,
-    media_order INT DEFAULT 0, -- Order of media in the review
+    media_url VARCHAR(255) NOT NULL,
+    media_thumbnail_url VARCHAR(255),
+    file_size_bytes BIGINT,
+    media_order INT DEFAULT 0,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (review_id) REFERENCES reviews(review_id) ON DELETE CASCADE,
-    INDEX idx_review_media_review (review_id),
-    INDEX idx_review_media_type (media_type)
+    INDEX idx_media_review (review_id),
+    INDEX idx_media_type (media_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table to store likes on reviews
