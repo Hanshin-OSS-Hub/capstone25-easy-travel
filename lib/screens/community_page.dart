@@ -1,25 +1,46 @@
 // 이 파일은 게시판(커뮤니티) 페이지입니다.
-// 게시글 목록을 표시하고, 글 작성 및 상세 보기 기능을 제공합니다.
+// 게시글 목록을 표시하고, 필터/검색 기능을 제공합니다.
 // DB 없이 앱 실행 중 메모리에서만 데이터를 관리합니다.
+// TODO: 추후 백엔드 API 연동 예정
 
 import 'package:flutter/material.dart';
-import 'post_detail_page.dart';
+import 'community_detail_page.dart';
+import 'community_write_page.dart';
 
-// 게시글 데이터 모델
+// === 게시글 데이터 모델 ===
+// TODO: 추후 백엔드 API에서 받아온 데이터로 교체
 class Post {
-  final String id;
+  final int id;
   final String title;
-  final String category;
   final String content;
-  final String author;
+  final String region;      // 지역 (예: 서울, 부산, 제주 등)
+  final String category;   // 카테고리 (날씨, 양도, 동행, 후기, Q&A, 선택 안 함)
+  final String author;      // 작성자
   final DateTime createdAt;
+  final List<Comment> comments; // 댓글 리스트
 
   Post({
     required this.id,
     required this.title,
-    required this.category,
     required this.content,
+    required this.region,
+    required this.category,
     required this.author,
+    required this.createdAt,
+    List<Comment>? comments,
+  }) : comments = comments ?? [];
+}
+
+// === 댓글 데이터 모델 ===
+// TODO: 추후 백엔드 API에서 받아온 데이터로 교체
+class Comment {
+  final String author;      // 작성자 (지금은 "익명"으로 고정)
+  final String content;     // 댓글 내용
+  final DateTime createdAt; // 작성 시간
+
+  Comment({
+    required this.author,
+    required this.content,
     required this.createdAt,
   });
 }
@@ -32,45 +53,142 @@ class CommunityPage extends StatefulWidget {
 }
 
 class _CommunityPageState extends State<CommunityPage> {
-  // 게시글 리스트를 상태로 관리
-  // 초기에는 더미 게시글 3개를 포함
-  List<Post> _posts = [
+  // TODO: 추후 실제 수집 지역과 연동
+  // 선택 가능한 지역 목록
+  static const List<String> _availableRegions = [
+    '전체',
+    '서울',
+    '부산',
+    '제주',
+  ];
+
+  // 필터용 카테고리 목록 (작성 시에는 '선택 안 함'도 포함)
+  static const List<String> _filterCategories = [
+    '전체',
+    '날씨',
+    '양도',
+    '동행',
+    '후기',
+    'Q&A',
+  ];
+
+  // TODO: 추후 백엔드 API에서 게시글 리스트를 가져오도록 수정
+  // 게시글 리스트를 상태로 관리 (원본 데이터)
+  List<Post> _allPosts = [
     Post(
-      id: '1',
+      id: 1,
       title: '서울 여행 일정 추천 부탁드려요!',
+      content: '3일간 서울을 여행하려고 하는데 추천 일정이 있을까요? 경복궁, 명동, 한강 공원 정도를 가려고 하는데 시간 배분이 어렵네요.',
+      region: '서울',
       category: 'Q&A',
-      content: '3일간 서울을 여행하려고 하는데 추천 일정이 있을까요?',
       author: 'Traveler123',
       createdAt: DateTime.now().subtract(const Duration(days: 2)),
+      comments: [
+        Comment(
+          author: '익명1',
+          content: '경복궁은 오전에 가시는 걸 추천해요!',
+          createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        ),
+        Comment(
+          author: '익명2',
+          content: '명동은 저녁에 가면 더 분위기 좋아요.',
+          createdAt: DateTime.now().subtract(const Duration(hours: 12)),
+        ),
+      ],
     ),
     Post(
-      id: '2',
+      id: 2,
       title: '부산 해운대 후기',
+      content: '해운대 해수욕장이 정말 아름다웠습니다. 특히 일몰이 장관이었어요! 주변 맛집도 많아서 좋았습니다.',
+      region: '부산',
       category: '후기',
-      content: '해운대 해수욕장이 정말 아름다웠습니다. 특히 일몰이 장관이었어요!',
       author: 'BeachLover',
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      comments: [
+        Comment(
+          author: '익명1',
+          content: '저도 가봤는데 정말 좋았어요!',
+          createdAt: DateTime.now().subtract(const Duration(hours: 6)),
+        ),
+      ],
     ),
     Post(
-      id: '3',
+      id: 3,
       title: '제주도 동행 구합니다',
-      category: '동행구하기',
-      content: '다음 주말에 제주도 여행 가실 분 있나요?',
+      content: '다음 주말에 제주도 여행 가실 분 있나요? 렌터카 함께 빌려서 비용 절감하고 싶어요.',
+      region: '제주',
+      category: '동행',
       author: 'JejuExplorer',
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+      comments: [],
+    ),
+    Post(
+      id: 4,
+      title: '서울 날씨 정보 공유',
+      content: '오늘 서울 날씨가 정말 좋네요! 외출하기 딱 좋은 날씨입니다.',
+      region: '서울',
+      category: '날씨',
+      author: 'WeatherWatcher',
+      createdAt: DateTime.now().subtract(const Duration(hours: 3)),
+      comments: [],
+    ),
+    Post(
+      id: 5,
+      title: '부산 자갈치 시장 맛집 추천',
+      content: '자갈치 시장에서 먹은 회 정말 맛있었어요! 신선하고 가격도 합리적이었습니다.',
+      region: '부산',
+      category: '후기',
+      author: 'Foodie',
+      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      comments: [],
     ),
   ];
 
-  // 게시글 카테고리 목록
-  final List<String> _categories = ['Q&A', '후기', '동행구하기'];
+  // 필터 상태
+  String _selectedRegion = '전체';
+  String _selectedCategory = '전체';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // 필터링된 게시글 리스트
+  List<Post> get _filteredPosts {
+    return _allPosts.where((post) {
+      // 지역 필터
+      if (_selectedRegion != '전체' && post.region != _selectedRegion) {
+        return false;
+      }
+
+      // 카테고리 필터
+      if (_selectedCategory != '전체' && post.category != _selectedCategory) {
+        return false;
+      }
+
+      // 검색어 필터
+      final searchKeyword = _searchController.text.trim().toLowerCase();
+      if (searchKeyword.isNotEmpty) {
+        final titleMatch = post.title.toLowerCase().contains(searchKeyword);
+        final contentMatch = post.content.toLowerCase().contains(searchKeyword);
+        if (!titleMatch && !contentMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
-          // 상단 헤더
-          _buildHeader(),
+          // 상단 필터 & 검색 영역
+          _buildFilterSection(),
           
           // 게시글 목록
           Expanded(
@@ -80,42 +198,147 @@ class _CommunityPageState extends State<CommunityPage> {
       ),
       // 오른쪽 아래 플로팅 액션 버튼
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddPostDialog,
-        child: const Icon(Icons.add),
-        tooltip: '글 작성',
+        onPressed: _navigateToWritePage,
+        child: const Icon(Icons.edit),
+        tooltip: '글쓰기',
       ),
     );
   }
 
-  // 상단 헤더
-  Widget _buildHeader() {
+  // === 필터 & 검색 영역 ===
+  Widget _buildFilterSection() {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(16.0),
-      color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 2,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 제목
           Text(
             '여행 커뮤니티',
-            style: Theme.of(context).textTheme.headlineSmall,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '다른 여행자들과 정보를 공유하고 소통해보세요.',
-            style: Theme.of(context).textTheme.bodyMedium,
+          const SizedBox(height: 16),
+          
+          // 지역 선택
+          Row(
+            children: [
+              const Icon(Icons.location_on, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '지역',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: DropdownButton<String>(
+                  value: _selectedRegion,
+                  isExpanded: true,
+                  items: _availableRegions.map((region) {
+                    return DropdownMenuItem<String>(
+                      value: region,
+                      child: Text(region),
+                    );
+                  }).toList(),
+                  onChanged: (String? value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedRegion = value;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // 카테고리 선택
+          Row(
+            children: [
+              const Icon(Icons.category, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '카테고리',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: DropdownButton<String>(
+                  value: _selectedCategory,
+                  isExpanded: true,
+                  items: _filterCategories.map((category) {
+                    return DropdownMenuItem<String>(
+                      value: category,
+                      child: Text(category),
+                    );
+                  }).toList(),
+                  onChanged: (String? value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedCategory = value;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // 검색창
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: '제목 또는 내용 검색',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _searchController.clear();
+                        });
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {});
+            },
           ),
         ],
       ),
     );
   }
 
-  // 게시글 목록
+  // === 게시글 목록 ===
   Widget _buildPostList() {
-    if (_posts.isEmpty) {
+    final filteredPosts = _filteredPosts;
+
+    if (filteredPosts.isEmpty) {
       return Center(
         child: Text(
-          '아직 게시글이 없습니다.\n첫 게시글을 작성해보세요!',
+          '게시글이 없습니다.\n첫 게시글을 작성해보세요!',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Colors.grey,
@@ -126,93 +349,116 @@ class _CommunityPageState extends State<CommunityPage> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16.0),
-      itemCount: _posts.length,
+      itemCount: filteredPosts.length,
       itemBuilder: (context, index) {
-        return _buildPostCard(_posts[index]);
+        return _buildPostCard(filteredPosts[index]);
       },
     );
   }
 
-  // 게시글 카드
+  // === 게시글 카드 ===
   Widget _buildPostCard(Post post) {
+    final commentCount = post.comments.length;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () {
-          // Navigator.push를 사용하여 상세 페이지로 이동
-          // MaterialPageRoute를 통해 화면 전환 애니메이션과 함께 새 페이지를 표시
+          // 상세 페이지로 이동
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => PostDetailPage(post: post),
+              builder: (context) => CommunityDetailPage(post: post),
             ),
-          );
+          ).then((_) {
+            // 상세 페이지에서 돌아왔을 때 댓글이 추가되었을 수 있으므로 화면 갱신
+            setState(() {});
+          });
         },
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 카테고리와 제목
+              // 카테고리와 지역
               Row(
                 children: [
-                  // 카테고리 태그
+                  // 지역 태그
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: _getCategoryColor(post.category),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      post.category,
+                      post.region,
                       style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // 제목
-                  Expanded(
-                    child: Text(
-                      post.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                  // 카테고리 태그
+                  _buildCategoryChip(post.category),
                 ],
               ),
               const SizedBox(height: 8),
-              // 미리보기 내용
+              
+              // 제목
               Text(
-                post.content,
-                style: Theme.of(context).textTheme.bodyMedium,
+                post.title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
-              // 작성자 정보
+              
+              // 내용 일부 (1~2줄만)
+              Text(
+                post.content,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[700],
+                    ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              
+              // 작성자, 작성일, 댓글 개수
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '작성자: ${post.author}',
+                    post.author,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
                         ),
                   ),
-                  Text(
-                    _formatDate(post.createdAt),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                  Row(
+                    children: [
+                      // 댓글 개수 표시 (작은 글씨)
+                      Text(
+                        '댓글 $commentCount개',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatDate(post.createdAt),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -223,15 +469,43 @@ class _CommunityPageState extends State<CommunityPage> {
     );
   }
 
+  // 카테고리 칩 위젯
+  Widget _buildCategoryChip(String category) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 4,
+      ),
+      decoration: BoxDecoration(
+        color: _getCategoryColor(category),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        category,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
   // 카테고리별 색상 반환
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Q&A':
-        return Colors.blue;
+      case '날씨':
+        return Colors.lightBlue;
+      case '양도':
+        return Colors.orange;
+      case '동행':
+        return Colors.purple;
       case '후기':
         return Colors.green;
-      case '동행구하기':
-        return Colors.orange;
+      case 'Q&A':
+        return Colors.blue;
+      case '선택 안 함':
+        return Colors.grey;
       default:
         return Colors.grey;
     }
@@ -253,147 +527,27 @@ class _CommunityPageState extends State<CommunityPage> {
     }
   }
 
-  // 게시글 작성 다이얼로그 표시
-  void _showAddPostDialog() {
-    final titleController = TextEditingController();
-    final contentController = TextEditingController();
-    String selectedCategory = _categories[0];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  // === 글쓰기 페이지로 이동 ===
+  void _navigateToWritePage() async {
+    final result = await Navigator.push<Post>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CommunityWritePage(),
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 16,
-                right: 16,
-                top: 16,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 헤더
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '게시글 작성',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // 제목 입력
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: '제목',
-                      hintText: '게시글 제목을 입력하세요',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // 카테고리 선택
-                  Text(
-                    '카테고리',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButton<String>(
-                    value: selectedCategory,
-                    isExpanded: true,
-                    items: _categories.map((category) {
-                      return DropdownMenuItem(
-                        value: category,
-                        child: Text(category),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setModalState(() {
-                        selectedCategory = value!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // 본문 입력
-                  TextField(
-                    controller: contentController,
-                    decoration: const InputDecoration(
-                      labelText: '본문',
-                      hintText: '게시글 내용을 입력하세요',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 6,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // 등록 버튼
-                  ElevatedButton(
-                    onPressed: () {
-                      // 입력값 검증
-                      if (titleController.text.isEmpty ||
-                          contentController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('제목과 본문을 모두 입력해주세요.'),
-                          ),
-                        );
-                        return;
-                      }
-
-                      // setState를 호출하여 게시글 리스트에 새 게시글 추가
-                      // insert(0, ...)로 최신 글이 맨 위에 오도록 함
-                      setState(() {
-                        _posts.insert(
-                          0,
-                          Post(
-                            id: DateTime.now().millisecondsSinceEpoch.toString(),
-                            title: titleController.text,
-                            category: selectedCategory,
-                            content: contentController.text,
-                            author: 'User${_posts.length + 1}',
-                            createdAt: DateTime.now(),
-                          ),
-                        );
-                      });
-
-                      // 다이얼로그 닫기
-                      Navigator.pop(context);
-
-                      // 성공 메시지
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('게시글이 등록되었습니다.'),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text('등록'),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
+
+    // 글쓰기 페이지에서 게시글을 작성하고 돌아왔을 때
+    if (result != null) {
+      setState(() {
+        _allPosts.insert(0, result);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('게시글이 등록되었습니다.'),
+        ),
+      );
+    }
   }
 }
 

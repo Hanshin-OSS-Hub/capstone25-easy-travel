@@ -8,6 +8,7 @@ import 'screens/map_page.dart';
 import 'screens/reviews_page.dart';
 import 'screens/community_page.dart';
 import 'widgets/category_menu_section.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,6 +21,18 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'K-Trip',
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ko', 'KR'),
+        Locale('en', 'US'),
+      ],
+
+
       // K-컬처 느낌의 보라색 계열 테마 설정
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

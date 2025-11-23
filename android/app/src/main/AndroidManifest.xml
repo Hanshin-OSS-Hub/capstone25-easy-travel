@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 이미지 선택/촬영을 위한 권한들 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Android 13 이상에서 갤러리 이미지 읽기 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Android 12 이하에서 갤러리 이미지 읽기 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+
     <application
         android:label="ktrip_project"
         android:name="${applicationName}"
